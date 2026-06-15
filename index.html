@@ -3,70 +3,66 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Messenger UI Upgrade</title>
+<title>FB Messenger UI Clone</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 <style>
-* {
-  box-sizing:border-box;
-}
+* { box-sizing:border-box; }
 
 body {
   margin:0;
-  font-family: system-ui, Arial;
+  font-family: system-ui;
   background:#0b141a;
   color:white;
   height:100vh;
-  overflow:hidden;
 }
 
-/* APP WRAPPER */
+/* APP */
 #app {
   height:100vh;
   display:flex;
-  flex-direction:column;
 }
 
-/* LOGIN */
-#login {
-  padding:20px;
+/* SIDEBAR (chat list) */
+#sidebar {
+  width:320px;
+  background:#111b21;
+  border-right:1px solid #22303c;
   display:flex;
   flex-direction:column;
-  gap:10px;
 }
 
-input, button, textarea {
+#meBar {
   padding:14px;
-  border:none;
-  border-radius:10px;
-  font-size:16px;
-}
-
-button {
-  background:#00a884;
-  color:white;
+  background:#202c33;
   font-weight:600;
 }
 
-/* CHAT SCREEN */
-#chat {
-  display:none;
-  flex-direction:column;
-  height:100vh;
+.user {
+  padding:12px;
+  cursor:pointer;
+  border-bottom:1px solid #1f2a33;
 }
 
-/* HEADER (Messenger style) */
+.user:hover {
+  background:#1f2a33;
+}
+
+/* CHAT AREA */
+#chatArea {
+  flex:1;
+  display:flex;
+  flex-direction:column;
+}
+
+/* HEADER */
 #header {
   padding:14px;
   background:#202c33;
   font-weight:600;
-  font-size:16px;
-  position:sticky;
-  top:0;
-  z-index:10;
 }
 
 /* CHAT BOX */
@@ -80,13 +76,12 @@ button {
   background:#0b141a;
 }
 
-/* MESSAGE BUBBLES */
+/* MESSAGES */
 .msg {
-  max-width:75%;
+  max-width:70%;
   padding:10px 12px;
   border-radius:18px;
-  font-size:15px;
-  line-height:1.3;
+  font-size:14px;
   word-break:break-word;
 }
 
@@ -102,20 +97,18 @@ button {
   border-bottom-left-radius:6px;
 }
 
-/* NAME */
 .small {
   font-size:11px;
   opacity:0.7;
   margin-top:4px;
 }
 
-/* INPUT BAR (fixed like Messenger) */
+/* INPUT */
 #inputBar {
   display:flex;
-  gap:8px;
   padding:10px;
   background:#202c33;
-  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+  gap:8px;
 }
 
 #msg {
@@ -124,21 +117,33 @@ button {
   border-radius:20px;
   border:none;
   outline:none;
-  font-size:15px;
 }
 
-#send {
-  padding:12px 16px;
-  border-radius:20px;
-  border:none;
+button {
   background:#00a884;
+  border:none;
   color:white;
-  font-weight:600;
+  padding:10px 14px;
+  border-radius:20px;
+  cursor:pointer;
 }
 
-/* MOBILE FIX */
-@media (max-width:600px){
-  .msg { max-width:85%; }
+/* MOBILE MODE */
+@media (max-width:700px){
+  #app { flex-direction:column; }
+
+  #sidebar {
+    width:100%;
+    height:160px;
+    overflow-x:auto;
+    flex-direction:row;
+    white-space:nowrap;
+  }
+
+  .user {
+    display:inline-block;
+    min-width:160px;
+  }
 }
 </style>
 </head>
@@ -147,19 +152,16 @@ button {
 
 <div id="app">
 
-<!-- LOGIN -->
-<div id="login">
-  <h2 style="margin:10px 0;">Messenger</h2>
-  <input id="email" placeholder="Email">
-  <input id="pass" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <button id="regBtn" style="background:#2563eb;">Register</button>
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div id="meBar">Messenger</div>
+  <div id="users"></div>
 </div>
 
 <!-- CHAT -->
-<div id="chat">
+<div id="chatArea">
 
-  <div id="header">Messenger</div>
+  <div id="header">Select chat</div>
 
   <div id="chatBox"></div>
 
@@ -186,94 +188,91 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-let user = null;
-let ref = null;
+let me = null;
+let currentChat = null;
+let chatRef = null;
+let users = {};
 
-const login = document.getElementById("login");
-const chat = document.getElementById("chat");
-const chatBox = document.getElementById("chatBox");
+// LOGIN AUTO (simple demo)
+auth.signInAnonymously().then(res=>{
+  me = res.user;
 
-function showChat(){
-  login.style.display="none";
-  chat.style.display="flex";
-}
+  db.ref("users/"+me.uid).set({
+    name:"User-"+me.uid.slice(0,5)
+  });
 
-function showLogin(){
-  login.style.display="flex";
-  chat.style.display="none";
-}
-
-/* AUTH */
-auth.onAuthStateChanged(u=>{
-  if(!u){
-    user = null;
-    showLogin();
-    return;
-  }
-
-  user = u;
-  showChat();
-
-  listen();
+  loadUsers();
 });
 
-/* LISTEN */
-function listen(){
-  if(ref) ref.off();
+/* LOAD USERS */
+async function loadUsers(){
+  const snap = await db.ref("users").once("value");
+  users = snap.val() || {};
 
-  chatBox.innerHTML = "";
+  const box = document.getElementById("users");
+  box.innerHTML = "";
 
-  ref = db.ref("messages/global");
-
-  ref.on("child_added", snap=>{
-    const m = snap.val();
+  for(let id in users){
+    if(id === me.uid) continue;
 
     const div = document.createElement("div");
-    div.className = "msg " + (m.sender === user.uid ? "me":"other");
+    div.className = "user";
+    div.textContent = users[id].name;
+
+    div.onclick = ()=>openChat(id);
+
+    box.appendChild(div);
+  }
+}
+
+/* CHAT ID */
+function chatId(a,b){
+  return [a,b].sort().join("_");
+}
+
+/* OPEN CHAT */
+function openChat(other){
+  currentChat = chatId(me.uid, other);
+
+  document.getElementById("header").innerText =
+    users[other].name;
+
+  if(chatRef) chatRef.off();
+
+  const box = document.getElementById("chatBox");
+  box.innerHTML = "";
+
+  chatRef = db.ref("messages/"+currentChat);
+
+  chatRef.on("child_added", s=>{
+    const m = s.val();
+
+    const div = document.createElement("div");
+    div.className = "msg " + (m.sender === me.uid ? "me":"other");
 
     div.innerHTML = `
       <div>${m.text}</div>
       <div class="small">${m.name}</div>
     `;
 
-    chatBox.appendChild(div);
-    chatBox.scrollTop = chatBox.scrollHeight;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
   });
 }
 
 /* SEND */
 document.getElementById("send").onclick = ()=>{
   const text = document.getElementById("msg").value.trim();
-  if(!text) return;
+  if(!text || !currentChat) return;
 
-  db.ref("messages/global").push({
+  db.ref("messages/"+currentChat).push({
     text,
-    sender: user.uid,
-    name: user.email.split("@")[0],
+    sender: me.uid,
+    name: users[me.uid]?.name || "me",
     time: Date.now()
   });
 
   document.getElementById("msg").value = "";
-};
-
-/* LOGIN */
-document.getElementById("loginBtn").onclick = ()=>{
-  auth.signInWithEmailAndPassword(
-    document.getElementById("email").value.trim(),
-    document.getElementById("pass").value.trim()
-  ).catch(e=>{
-    alert(e.message);
-  });
-};
-
-/* REGISTER */
-document.getElementById("regBtn").onclick = ()=>{
-  auth.createUserWithEmailAndPassword(
-    document.getElementById("email").value.trim(),
-    document.getElementById("pass").value.trim()
-  ).catch(e=>{
-    alert(e.message);
-  });
 };
 
 </script>
