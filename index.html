@@ -1,3 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Messenger Pro</title>
+
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<style>
+* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+
+body {
+  margin:0;
+  font-family:system-ui;
+  background:#0b141a;
+  color:white;
+}
+
+#app {
+  height:100vh;
+  display:flex;
+  flex-direction:column;
+  max-width:520px;
+  margin:auto;
+  background:#111b21;
+  overflow:hidden;
+}
+
+/* HEADER */
+header {
+  padding:14px;
+  background:#202c33;
+  font-weight:600;
+  text-align:center;
+}
+
+/* SCREENS */
+section {
+  display:none;
+  flex:1;
+  flex-direction:column;
+  overflow:hidden;
+}
+
+section.active { display:flex; }
+
+/* INPUTS */
+input, textarea, select {
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  border:none;
+  border-radius:10px;
+  background:#1f2c33;
+  color:white;
+}
+
+button {
+  padding:12px;
+  border:none;
+  border-radius:10px;
+  background:#00a884;
+  color:white;
+  font-weight:600;
+}
+
+/* CHAT LIST */
+#chatList {
+  flex:1;
+  overflow-y:auto;
+}
+
+.chatItem {
+  padding:12px;
+  border-bottom:1px solid #1f2c33;
+  cursor:pointer;
+}
+
+.chatItem small { opacity:0.6; }
+
+/* CHAT BOX */
+#chatBox {
+  flex:1;
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding:10px;
+  background:#0b141a;
+}
+
+.msg {
+  max-width:75%;
+  padding:10px;
+  border-radius:12px;
+  word-break:break-word;
+  position:relative;
+}
+
+.me { background:#005c4b; align-self:flex-end; }
+.other { background:#202c33; align-self:flex-start; }
+
+small {
+  display:block;
+  font-size:11px;
+  opacity:0.7;
+  margin-top:4px;
+}
+
+/* TICKS */
+.ticks {
+  font-size:10px;
+  opacity:0.8;
+}
+
+/* INPUT AREA */
+#inputArea {
+  display:flex;
+  gap:8px;
+  padding:10px;
+}
+
+#msg { flex:1; }
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+<header>💬 Messenger Pro</header>
+
+<!-- LOGIN -->
+<section id="login" class="active">
+  <input id="email" placeholder="Email">
+  <input id="pass" type="password" placeholder="Password">
+  <button id="loginBtn">Login</button>
+  <button id="regBtn">Register</button>
+</section>
+
+<!-- CHAT LIST -->
+<section id="inbox">
+  <div id="chatList"></div>
+</section>
+
+<!-- CHAT -->
+<section id="chat">
+
+  <input id="name" placeholder="Display name">
+
+  <div id="chatBox"></div>
+
+  <div id="inputArea">
+    <textarea id="msg" placeholder="Message..."></textarea>
+    <button id="send">Send</button>
+  </div>
+
+</section>
+
+</div>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCy9CKJ6CELheBhw7Gs0BgsE1E0FsoYdgU",
@@ -190,3 +354,6 @@ function escapeHtml(t){
   .replaceAll(">","&gt;");
 }
 </script>
+
+</body>
+</html>
