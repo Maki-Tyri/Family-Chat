@@ -2,46 +2,144 @@
 <html>
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Firebase Messenger FIXED LOGIN</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Messenger UI Upgrade</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 <style>
-body { margin:0; font-family:Arial; background:#0f172a; color:white; }
-
-#app { max-width:500px; margin:auto; height:100vh; display:flex; flex-direction:column; }
-
-section { display:none; flex-direction:column; padding:10px; flex:1; }
-section.active { display:flex; }
-
-input, button, textarea {
-  padding:10px; margin:5px 0; border:none; border-radius:6px;
-  width:100%;
+* {
+  box-sizing:border-box;
 }
 
-#chatBox {
-  flex:1;
-  overflow:auto;
-  background:#111827;
-  padding:10px;
+body {
+  margin:0;
+  font-family: system-ui, Arial;
+  background:#0b141a;
+  color:white;
+  height:100vh;
+  overflow:hidden;
+}
+
+/* APP WRAPPER */
+#app {
+  height:100vh;
   display:flex;
   flex-direction:column;
-  gap:6px;
 }
 
+/* LOGIN */
+#login {
+  padding:20px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+input, button, textarea {
+  padding:14px;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
+}
+
+button {
+  background:#00a884;
+  color:white;
+  font-weight:600;
+}
+
+/* CHAT SCREEN */
+#chat {
+  display:none;
+  flex-direction:column;
+  height:100vh;
+}
+
+/* HEADER (Messenger style) */
+#header {
+  padding:14px;
+  background:#202c33;
+  font-weight:600;
+  font-size:16px;
+  position:sticky;
+  top:0;
+  z-index:10;
+}
+
+/* CHAT BOX */
+#chatBox {
+  flex:1;
+  overflow-y:auto;
+  padding:12px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  background:#0b141a;
+}
+
+/* MESSAGE BUBBLES */
 .msg {
-  padding:8px;
-  border-radius:6px;
-  max-width:80%;
+  max-width:75%;
+  padding:10px 12px;
+  border-radius:18px;
+  font-size:15px;
+  line-height:1.3;
+  word-break:break-word;
 }
 
-.me { background:#2563eb; align-self:flex-end; }
-.other { background:#374151; align-self:flex-start; }
+.me {
+  align-self:flex-end;
+  background:#005c4b;
+  border-bottom-right-radius:6px;
+}
 
-button { background:#2563eb; color:white; cursor:pointer; }
+.other {
+  align-self:flex-start;
+  background:#202c33;
+  border-bottom-left-radius:6px;
+}
+
+/* NAME */
+.small {
+  font-size:11px;
+  opacity:0.7;
+  margin-top:4px;
+}
+
+/* INPUT BAR (fixed like Messenger) */
+#inputBar {
+  display:flex;
+  gap:8px;
+  padding:10px;
+  background:#202c33;
+  padding-bottom:calc(10px + env(safe-area-inset-bottom));
+}
+
+#msg {
+  flex:1;
+  padding:12px;
+  border-radius:20px;
+  border:none;
+  outline:none;
+  font-size:15px;
+}
+
+#send {
+  padding:12px 16px;
+  border-radius:20px;
+  border:none;
+  background:#00a884;
+  color:white;
+  font-weight:600;
+}
+
+/* MOBILE FIX */
+@media (max-width:600px){
+  .msg { max-width:85%; }
+}
 </style>
 </head>
 
@@ -50,25 +148,27 @@ button { background:#2563eb; color:white; cursor:pointer; }
 <div id="app">
 
 <!-- LOGIN -->
-<section id="login" class="active">
-  <h3>Login</h3>
+<div id="login">
+  <h2 style="margin:10px 0;">Messenger</h2>
   <input id="email" placeholder="Email">
   <input id="pass" type="password" placeholder="Password">
   <button id="loginBtn">Login</button>
-  <button id="regBtn">Register</button>
-</section>
+  <button id="regBtn" style="background:#2563eb;">Register</button>
+</div>
 
 <!-- CHAT -->
-<section id="chat">
-  <h3>Messenger</h3>
+<div id="chat">
 
-  <input id="name" placeholder="Display name">
+  <div id="header">Messenger</div>
 
   <div id="chatBox"></div>
 
-  <textarea id="msg"></textarea>
-  <button id="send">Send</button>
-</section>
+  <div id="inputBar">
+    <input id="msg" placeholder="Message...">
+    <button id="send">Send</button>
+  </div>
+
+</div>
 
 </div>
 
@@ -93,31 +193,32 @@ const login = document.getElementById("login");
 const chat = document.getElementById("chat");
 const chatBox = document.getElementById("chatBox");
 
-function show(x){
-  login.classList.remove("active");
-  chat.classList.remove("active");
-  x.classList.add("active");
+function showChat(){
+  login.style.display="none";
+  chat.style.display="flex";
 }
 
-// 🔥 AUTH STATE
+function showLogin(){
+  login.style.display="flex";
+  chat.style.display="none";
+}
+
+/* AUTH */
 auth.onAuthStateChanged(u=>{
   if(!u){
     user = null;
-    show(login);
+    showLogin();
     return;
   }
 
   user = u;
-  show(chat);
+  showChat();
 
-  document.getElementById("name").value =
-    u.email ? u.email.split("@")[0] : "user";
-
-  listenMessages();
+  listen();
 });
 
-// 🔥 LISTEN
-function listenMessages(){
+/* LISTEN */
+function listen(){
   if(ref) ref.off();
 
   chatBox.innerHTML = "";
@@ -130,14 +231,17 @@ function listenMessages(){
     const div = document.createElement("div");
     div.className = "msg " + (m.sender === user.uid ? "me":"other");
 
-    div.textContent = `${m.name}: ${m.text}`;
+    div.innerHTML = `
+      <div>${m.text}</div>
+      <div class="small">${m.name}</div>
+    `;
 
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
-// 🔥 SEND
+/* SEND */
 document.getElementById("send").onclick = ()=>{
   const text = document.getElementById("msg").value.trim();
   if(!text) return;
@@ -145,41 +249,30 @@ document.getElementById("send").onclick = ()=>{
   db.ref("messages/global").push({
     text,
     sender: user.uid,
-    name: document.getElementById("name").value || "user",
+    name: user.email.split("@")[0],
     time: Date.now()
   });
 
   document.getElementById("msg").value = "";
 };
 
-// 🔥 LOGIN (WITH FULL ERROR DEBUG)
+/* LOGIN */
 document.getElementById("loginBtn").onclick = ()=>{
-  const email = document.getElementById("email").value;
-  const pass = document.getElementById("pass").value;
-
-  auth.signInWithEmailAndPassword(email, pass)
-  .catch(e=>{
-    alert("LOGIN ERROR:\n" + e.code + "\n" + e.message);
-    console.log(e);
+  auth.signInWithEmailAndPassword(
+    document.getElementById("email").value.trim(),
+    document.getElementById("pass").value.trim()
+  ).catch(e=>{
+    alert(e.message);
   });
 };
 
-// 🔥 REGISTER (WITH DEBUG)
+/* REGISTER */
 document.getElementById("regBtn").onclick = ()=>{
-  const email = document.getElementById("email").value;
-  const pass = document.getElementById("pass").value;
-
-  auth.createUserWithEmailAndPassword(email, pass)
-  .then(res=>{
-    alert("Account created!");
-    db.ref("users/"+res.user.uid).set({
-      email: res.user.email,
-      name: res.user.email.split("@")[0]
-    });
-  })
-  .catch(e=>{
-    alert("REGISTER ERROR:\n" + e.code + "\n" + e.message);
-    console.log(e);
+  auth.createUserWithEmailAndPassword(
+    document.getElementById("email").value.trim(),
+    document.getElementById("pass").value.trim()
+  ).catch(e=>{
+    alert(e.message);
   });
 };
 
