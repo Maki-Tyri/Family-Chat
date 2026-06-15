@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Working Messenger</title>
+<title>Firebase Messenger FIXED LOGIN</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -14,11 +14,12 @@ body { margin:0; font-family:Arial; background:#0f172a; color:white; }
 
 #app { max-width:500px; margin:auto; height:100vh; display:flex; flex-direction:column; }
 
-section { display:none; padding:10px; flex-direction:column; flex:1; }
+section { display:none; flex-direction:column; padding:10px; flex:1; }
 section.active { display:flex; }
 
-input, button, textarea, select {
-  padding:10px; margin:5px 0; width:100%; border:none; border-radius:6px;
+input, button, textarea {
+  padding:10px; margin:5px 0; border:none; border-radius:6px;
+  width:100%;
 }
 
 #chatBox {
@@ -40,7 +41,6 @@ input, button, textarea, select {
 .me { background:#2563eb; align-self:flex-end; }
 .other { background:#374151; align-self:flex-start; }
 
-small { opacity:0.7; font-size:11px; }
 button { background:#2563eb; color:white; cursor:pointer; }
 </style>
 </head>
@@ -51,6 +51,7 @@ button { background:#2563eb; color:white; cursor:pointer; }
 
 <!-- LOGIN -->
 <section id="login" class="active">
+  <h3>Login</h3>
   <input id="email" placeholder="Email">
   <input id="pass" type="password" placeholder="Password">
   <button id="loginBtn">Login</button>
@@ -59,11 +60,9 @@ button { background:#2563eb; color:white; cursor:pointer; }
 
 <!-- CHAT -->
 <section id="chat">
-  <input id="name" placeholder="Display name">
+  <h3>Messenger</h3>
 
-  <select id="chatSelect">
-    <option value="global">Global Chat</option>
-  </select>
+  <input id="name" placeholder="Display name">
 
   <div id="chatBox"></div>
 
@@ -88,22 +87,19 @@ const auth = firebase.auth();
 const db = firebase.database();
 
 let user = null;
-let currentChat = "global";
 let ref = null;
 
-// UI
 const login = document.getElementById("login");
 const chat = document.getElementById("chat");
 const chatBox = document.getElementById("chatBox");
 
-// SHOW
 function show(x){
   login.classList.remove("active");
   chat.classList.remove("active");
   x.classList.add("active");
 }
 
-// AUTH
+// 🔥 AUTH STATE
 auth.onAuthStateChanged(u=>{
   if(!u){
     user = null;
@@ -117,62 +113,74 @@ auth.onAuthStateChanged(u=>{
   document.getElementById("name").value =
     u.email ? u.email.split("@")[0] : "user";
 
-  listen();
+  listenMessages();
 });
 
-// LISTEN MESSAGES
-function listen(){
+// 🔥 LISTEN
+function listenMessages(){
   if(ref) ref.off();
 
   chatBox.innerHTML = "";
 
-  ref = db.ref("messages/"+currentChat);
+  ref = db.ref("messages/global");
 
-  ref.on("child_added", s=>{
-    const m = s.val();
+  ref.on("child_added", snap=>{
+    const m = snap.val();
 
     const div = document.createElement("div");
     div.className = "msg " + (m.sender === user.uid ? "me":"other");
 
-    div.innerHTML = `
-      ${m.text}
-      <br><small>${m.name}</small>
-    `;
+    div.textContent = `${m.name}: ${m.text}`;
 
     chatBox.appendChild(div);
     chatBox.scrollTop = chatBox.scrollHeight;
   });
 }
 
-// SEND
+// 🔥 SEND
 document.getElementById("send").onclick = ()=>{
   const text = document.getElementById("msg").value.trim();
   if(!text) return;
 
-  db.ref("messages/"+currentChat).push({
+  db.ref("messages/global").push({
     text,
     sender: user.uid,
-    name: document.getElementById("name").value,
+    name: document.getElementById("name").value || "user",
     time: Date.now()
   });
 
   document.getElementById("msg").value = "";
 };
 
-// LOGIN
+// 🔥 LOGIN (WITH FULL ERROR DEBUG)
 document.getElementById("loginBtn").onclick = ()=>{
-  auth.signInWithEmailAndPassword(
-    document.getElementById("email").value,
-    document.getElementById("pass").value
-  ).catch(e=>alert(e.message));
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("pass").value;
+
+  auth.signInWithEmailAndPassword(email, pass)
+  .catch(e=>{
+    alert("LOGIN ERROR:\n" + e.code + "\n" + e.message);
+    console.log(e);
+  });
 };
 
-// REGISTER
+// 🔥 REGISTER (WITH DEBUG)
 document.getElementById("regBtn").onclick = ()=>{
-  auth.createUserWithEmailAndPassword(
-    document.getElementById("email").value,
-    document.getElementById("pass").value
-  ).catch(e=>alert(e.message));
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("pass").value;
+
+  auth.createUserWithEmailAndPassword(email, pass)
+  .then(res=>{
+    alert("Account created!");
+    db.ref("users/"+res.user.uid).set({
+      email: res.user.email,
+      name: res.user.email.split("@")[0]
+    });
+  })
+  .catch(e=>{
+    alert("REGISTER ERROR:\n" + e.code + "\n" + e.message);
+    console.log(e);
+  });
 };
 
 </script>
