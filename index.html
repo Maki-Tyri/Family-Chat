@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Messenger UI Improved</title>
+<title>Messenger</title>
 
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
@@ -159,10 +159,10 @@ small {
 <!-- CHAT -->
 <section id="chat">
 
-  <input id="name" placeholder="Display name">
+  <input id="name" placeholder="Display name" readonly>
 
   <select id="chatSelect">
-    <option value="global">🌍 Global Chat</option>
+    <option value="global">🌍 Family Chat</option>
   </select>
 
   <div id="chatBox"></div>
@@ -215,8 +215,10 @@ auth.onAuthStateChanged(u=>{
   user = u;
   show(chat);
 
-  document.getElementById("name").value =
-    (u.email || "user").split("@")[0];
+  const emailName = (u.email || "").split("@")[0];
+
+document.getElementById("name").value =
+  emailName || "user";
 
   listen();
 });
@@ -256,7 +258,7 @@ document.getElementById("send").onclick = ()=>{
   db.ref("messages/global").push({
     text,
     sender: user.uid,
-    name: name || (user.email ? user.email.split("@")[0] : "user"),
+    name: (document.getElementById("name").value || "").trim() || emailName,
     time: Date.now()
   });
 
