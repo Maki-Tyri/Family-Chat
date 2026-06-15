@@ -1,167 +1,3 @@
-<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Messenger Pro</title>
-
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
-
-<style>
-* { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
-
-body {
-  margin:0;
-  font-family:system-ui;
-  background:#0b141a;
-  color:white;
-}
-
-#app {
-  height:100vh;
-  display:flex;
-  flex-direction:column;
-  max-width:520px;
-  margin:auto;
-  background:#111b21;
-  overflow:hidden;
-}
-
-/* HEADER */
-header {
-  padding:14px;
-  background:#202c33;
-  font-weight:600;
-  text-align:center;
-}
-
-/* SCREENS */
-section {
-  display:none;
-  flex:1;
-  flex-direction:column;
-  overflow:hidden;
-}
-
-section.active { display:flex; }
-
-/* INPUTS */
-input, textarea, select {
-  width:100%;
-  padding:12px;
-  margin:6px 0;
-  border:none;
-  border-radius:10px;
-  background:#1f2c33;
-  color:white;
-}
-
-button {
-  padding:12px;
-  border:none;
-  border-radius:10px;
-  background:#00a884;
-  color:white;
-  font-weight:600;
-}
-
-/* CHAT LIST */
-#chatList {
-  flex:1;
-  overflow-y:auto;
-}
-
-.chatItem {
-  padding:12px;
-  border-bottom:1px solid #1f2c33;
-  cursor:pointer;
-}
-
-.chatItem small { opacity:0.6; }
-
-/* CHAT BOX */
-#chatBox {
-  flex:1;
-  overflow-y:auto;
-  display:flex;
-  flex-direction:column;
-  gap:8px;
-  padding:10px;
-  background:#0b141a;
-}
-
-.msg {
-  max-width:75%;
-  padding:10px;
-  border-radius:12px;
-  word-break:break-word;
-  position:relative;
-}
-
-.me { background:#005c4b; align-self:flex-end; }
-.other { background:#202c33; align-self:flex-start; }
-
-small {
-  display:block;
-  font-size:11px;
-  opacity:0.7;
-  margin-top:4px;
-}
-
-/* TICKS */
-.ticks {
-  font-size:10px;
-  opacity:0.8;
-}
-
-/* INPUT AREA */
-#inputArea {
-  display:flex;
-  gap:8px;
-  padding:10px;
-}
-
-#msg { flex:1; }
-</style>
-</head>
-
-<body>
-
-<div id="app">
-
-<header>💬 Messenger Pro</header>
-
-<!-- LOGIN -->
-<section id="login" class="active">
-  <input id="email" placeholder="Email">
-  <input id="pass" type="password" placeholder="Password">
-  <button id="loginBtn">Login</button>
-  <button id="regBtn">Register</button>
-</section>
-
-<!-- CHAT LIST -->
-<section id="inbox">
-  <div id="chatList"></div>
-</section>
-
-<!-- CHAT -->
-<section id="chat">
-
-  <input id="name" placeholder="Display name">
-
-  <div id="chatBox"></div>
-
-  <div id="inputArea">
-    <textarea id="msg" placeholder="Message..."></textarea>
-    <button id="send">Send</button>
-  </div>
-
-</section>
-
-</div>
-
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyCy9CKJ6CELheBhw7Gs0BgsE1E0FsoYdgU",
@@ -175,185 +11,221 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.database();
 
-let user=null;
-let currentRoom=null;
-let msgRef=null;
-
-/* UI */
-function show(id){
-  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
-  document.getElementById(id).classList.add("active");
-}
+let user = null;
+let currentRoom = null;
+let msgRef = null;
 
 /* SAFE NAME */
 function getName(u){
   return u?.displayName || u?.email?.split("@")[0] || "user";
 }
 
-/* AUTH */
-auth.onAuthStateChanged(async u=>{
-  if(!u){
-    show("login");
-    return;
+/* SAVE USER NAME FIXED */
+async function saveUserName(u){
+  const defaultName = u.email.split("@")[0];
+
+  if(!u.displayName){
+    await u.updateProfile({ displayName: defaultName });
   }
 
-  user=u;
-  show("inbox");
-
-  loadChats();
-});
-
-/* CHAT LIST FIXED */
-function loadChats(){
-  const list=document.getElementById("chatList");
-
-  db.ref("messages").off();
-  db.ref("messages").on("value", snap=>{
-    list.innerHTML="";
-
-    snap.forEach(roomSnap=>{
-      const room=roomSnap.key;
-      const msgs=roomSnap.val();
-
-      if(!msgs) return;
-
-      const keys=Object.keys(msgs);
-      const lastKey=keys[keys.length-1];
-      const last=msgs[lastKey];
-
-      const div=document.createElement("div");
-      div.className="chatItem";
-
-      div.innerHTML=`
-        <b>${room}</b><br>
-        ${last?.text || ""}<br>
-        <small>${last?.name || ""}</small>
-      `;
-
-      div.onclick=()=>openChat(room);
-      list.appendChild(div);
-    });
+  await db.ref("users/" + u.uid).set({
+    name: u.displayName || defaultName,
+    email: u.email
   });
 }
 
-/* OPEN CHAT */
-function openChat(room){
-  currentRoom=room;
-  show("chat");
-
-  listenMessages(room);
-  markSeen(room);
+/* SWITCH UI */
+function show(id){
+  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
 }
 
-/* CHAT LISTENER FIXED */
+/* LISTEN MESSAGES (ONLY ONE VERSION) */
 function listenMessages(room){
 
   if(msgRef) msgRef.off();
 
-  const box=document.getElementById("chatBox");
-  box.innerHTML="";
+  const box = document.getElementById("chatBox");
+  box.innerHTML = "";
 
-  msgRef=db.ref("messages/"+room);
+  msgRef = db.ref("messages/" + room);
 
-  msgRef.on("child_added", snap=>{
-    const m=snap.val();
-    const key=snap.key;
+  msgRef.on("child_added", snap => {
+    const m = snap.val();
+    const key = snap.key;
 
-    const div=document.createElement("div");
-    div.className="msg "+(m.sender===user.uid?"me":"other");
+    const div = document.createElement("div");
+    div.className = "msg " + (m.sender === user.uid ? "me" : "other");
 
-    const time=new Date(m.time||Date.now()).toLocaleTimeString();
+    const time = new Date(m.time || Date.now()).toLocaleTimeString();
+    const seen = m.seenBy && Object.keys(m.seenBy).length > 1;
 
-    const seen = m.seenBy && Object.keys(m.seenBy).length>1;
-
-    div.innerHTML=`
+    div.innerHTML = `
       ${escapeHtml(m.text)}
-      <small>${escapeHtml(m.name)} • ${time}</small>
-      <div class="ticks">${m.sender===user.uid ? (seen?"✓✓":"✓") : ""}</div>
+      <small>${escapeHtml(m.name || "user")} • ${time}</small>
+      <div class="ticks">${m.sender === user.uid ? (seen ? "✓✓" : "✓") : ""}</div>
     `;
 
-    /* LONG PRESS DELETE FIXED */
-    if(m.sender===user.uid){
+    /* HOLD TO DELETE */
+    if(m.sender === user.uid){
       let hold;
 
-      const start=()=>{
-        hold=setTimeout(()=>{
+      const start = () => {
+        hold = setTimeout(() => {
           if(confirm("Delete message?")){
             db.ref(`messages/${room}/${key}`).remove();
           }
-        },700);
+        }, 700);
       };
 
-      const cancel=()=>clearTimeout(hold);
+      const cancel = () => clearTimeout(hold);
 
-      div.addEventListener("mousedown",start);
-      div.addEventListener("mouseup",cancel);
-      div.addEventListener("mouseleave",cancel);
-      div.addEventListener("touchstart",start);
-      div.addEventListener("touchend",cancel);
+      div.addEventListener("mousedown", start);
+      div.addEventListener("mouseup", cancel);
+      div.addEventListener("mouseleave", cancel);
+      div.addEventListener("touchstart", start);
+      div.addEventListener("touchend", cancel);
     }
 
     box.appendChild(div);
-    box.scrollTop=box.scrollHeight;
+    box.scrollTop = box.scrollHeight;
   });
 }
 
-/* SEEN FIXED (auto update only unread) */
+/* MARK SEEN */
 function markSeen(room){
-  db.ref("messages/"+room).once("value", snap=>{
-    snap.forEach(child=>{
-      const m=child.val();
-      if(m.sender!==user.uid){
+  db.ref("messages/" + room).once("value", snap => {
+    snap.forEach(child => {
+      const m = child.val();
+      if(m.sender !== user.uid){
         db.ref(`messages/${room}/${child.key}/seenBy/${user.uid}`).set(true);
       }
     });
   });
 }
 
-/* SEND FIXED */
-document.getElementById("send").onclick=()=>{
-  const text=document.getElementById("msg").value.trim();
-  if(!text||!user||!currentRoom) return;
-
-  db.ref("messages/"+currentRoom).push({
-    text,
-    sender:user.uid,
-    name:getName(user),
-    time:Date.now(),
-    seenBy:{[user.uid]:true}
-  });
-
-  document.getElementById("msg").value="";
-};
-
-/* LOGIN FIX */
-document.getElementById("loginBtn").onclick=()=>{
-  const email=document.getElementById("email").value;
-  const pass=document.getElementById("pass").value;
-
-  auth.signInWithEmailAndPassword(email,pass);
-};
-
-/* REGISTER FIX */
-document.getElementById("regBtn").onclick=()=>{
-  const email=document.getElementById("email").value;
-  const pass=document.getElementById("pass").value;
-
-  const defaultName=email.split("@")[0];
-
-  auth.createUserWithEmailAndPassword(email,pass)
-  .then(u=>{
-    u.user.updateProfile({displayName:defaultName});
-  });
-};
-
-function escapeHtml(t){
-  return (t||"")
-  .replaceAll("&","&amp;")
-  .replaceAll("<","&lt;")
-  .replaceAll(">","&gt;");
+/* OPEN CHAT */
+function openChat(otherUid){
+  currentRoom = [user.uid, otherUid].sort().join("_");
+  show("chat");
+  listenMessages(currentRoom);
+  markSeen(currentRoom);
 }
-</script>
 
-</body>
-</html>
+/* LOAD USERS */
+function loadChats(){
+  const list = document.getElementById("chatList");
+
+  db.ref("users").on("value", snap => {
+    list.innerHTML = "";
+
+    snap.forEach(userSnap => {
+      const u = userSnap.val();
+      const uid = userSnap.key;
+
+      if(uid === user.uid) return;
+
+      const div = document.createElement("div");
+      div.className = "chatItem";
+
+      div.innerHTML = `
+        <b>${u.name || "user"}</b><br>
+        <small>${u.email || ""}</small>
+      `;
+
+      div.onclick = () => openChat(uid);
+      list.appendChild(div);
+    });
+  });
+}
+
+/* AUTH (MERGED FIX) */
+auth.onAuthStateChanged(async u => {
+  if(!u){
+    show("login");
+    return;
+  }
+
+  user = u;
+
+  await saveUserName(u);
+
+  document.getElementById("profileName").textContent =
+    getName(u);
+
+  show("inbox");
+  loadChats();
+});
+
+/* SEND */
+document.getElementById("send").onclick = () => {
+  const text = document.getElementById("msg").value.trim();
+  if(!text || !user || !currentRoom) return;
+
+  db.ref("messages/" + currentRoom).push({
+    text,
+    sender: user.uid,
+    name: getName(user),
+    time: Date.now(),
+    seenBy: { [user.uid]: true }
+  });
+
+  document.getElementById("msg").value = "";
+};
+
+/* LOGIN */
+document.getElementById("loginBtn").onclick = () => {
+  auth.signInWithEmailAndPassword(
+    document.getElementById("email").value,
+    document.getElementById("pass").value
+  );
+};
+
+/* REGISTER */
+document.getElementById("regBtn").onclick = () => {
+  const email = document.getElementById("email").value;
+  const pass = document.getElementById("pass").value;
+
+  const defaultName = email.split("@")[0];
+
+  auth.createUserWithEmailAndPassword(email, pass)
+    .then(res => {
+      return res.user.updateProfile({
+        displayName: defaultName
+      });
+    });
+};
+
+/* UTIL */
+function escapeHtml(t){
+  return (t || "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;");
+}
+
+/* MENU */
+const menuBtn = document.getElementById("menuBtn");
+const menu = document.getElementById("menu");
+
+menuBtn.onclick = () => menu.classList.toggle("show");
+
+document.addEventListener("click", e => {
+  if(!menu.contains(e.target) && e.target !== menuBtn){
+    menu.classList.remove("show");
+  }
+});
+
+/* LOGOUT */
+document.getElementById("logoutBtn").onclick = () => auth.signOut();
+
+/* BACK */
+document.getElementById("backBtn").onclick = () => {
+  currentRoom = null;
+  if(msgRef) msgRef.off();
+  msgRef = null;
+
+  document.getElementById("chatBox").innerHTML = "";
+  show("inbox");
+};
+</script>
