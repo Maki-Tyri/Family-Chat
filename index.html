@@ -29,15 +29,15 @@ body {
   overflow:hidden;
 }
 
-/* HEADER */
 header {
   padding:14px;
   background:#202c33;
   font-weight:600;
-  text-align:center;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
 
-/* SCREENS */
 section {
   display:none;
   flex:1;
@@ -47,8 +47,7 @@ section {
 
 section.active { display:flex; }
 
-/* INPUTS */
-input, textarea, select {
+input, textarea {
   width:100%;
   padding:12px;
   margin:6px 0;
@@ -66,12 +65,12 @@ button {
   color:white;
   font-weight:600;
 }
-
-/* CHAT LIST */
-#chatList {
-  flex:1;
-  overflow-y:auto;
+.authBtn {
+  padding:14px 18px;
+  margin-top:8px;
 }
+
+#chatList { flex:1; overflow-y:auto; }
 
 .chatItem {
   padding:12px;
@@ -81,18 +80,6 @@ button {
 
 .chatItem small { opacity:0.6; }
 
-.authButtons {
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  margin-top:10px;
-}
-
-.authButtons button {
-  width:100%;
-}
-
-/* CHAT BOX */
 #chatBox {
   flex:1;
   overflow-y:auto;
@@ -100,7 +87,6 @@ button {
   flex-direction:column;
   gap:8px;
   padding:10px;
-  background:#0b141a;
 }
 
 .msg {
@@ -108,7 +94,6 @@ button {
   padding:10px;
   border-radius:12px;
   word-break:break-word;
-  position:relative;
 }
 
 .me { background:#005c4b; align-self:flex-end; }
@@ -121,13 +106,11 @@ small {
   margin-top:4px;
 }
 
-/* TICKS */
 .ticks {
   font-size:10px;
   opacity:0.8;
 }
 
-/* INPUT AREA */
 #inputArea {
   display:flex;
   gap:8px;
@@ -136,76 +119,18 @@ small {
 
 #msg { flex:1; }
 
-/* HEADER LAYOUT */
-header {
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-}
-
-/* MENU */
-.menuWrap {
-  position:relative;
-}
-
-#menuBtn {
-  background:#1f2c33;
-  padding:6px 10px;
-  border-radius:8px;
-}
-
 .menu {
   position:absolute;
-  right:0;
-  top:40px;
+  right:10px;
+  top:50px;
   background:#1f2c33;
   border-radius:10px;
   padding:10px;
   display:none;
-  flex-direction:column;
-  gap:8px;
-  min-width:140px;
-  z-index:10;
 }
 
-.menu.show {
-  display:flex;
-}
+.menu.show { display:flex; flex-direction:column; gap:8px; }
 
-.menu button {
-  background:#ff4d4d;
-}
-
-/* PROFILE NAME */
-#profileName {
-  font-size:12px;
-  opacity:0.8;
-}
-
-/* LOGIN BUTTON FIX */
-.authButtons {
-  display:flex;
-  flex-direction:column;
-  gap:10px;
-  margin-top:10px;
-}
-
-.authButtons button {
-  width:100%;
-}
-.chatHeader {
-  display:flex;
-  align-items:center;
-  gap:10px;
-  padding:10px;
-  background:#202c33;
-}
-
-#backBtn {
-  background:#1f2c33;
-  padding:6px 10px;
-  border-radius:8px;
-}
 </style>
 </head>
 
@@ -215,47 +140,36 @@ header {
 
 <header>
   💬 Messenger Pro
-
-  <div class="menuWrap">
-    <button id="menuBtn">☰</button>
-
-    <div id="menu" class="menu">
-      <div id="profileName">User</div>
-      <button id="logoutBtn">Logout</button>
-    </div>
-  </div>
+  <button id="menuBtn">☰</button>
 </header>
 
-<!-- LOGIN -->
-<section id="login" class="active">
+<div id="menu" class="menu">
+  <div id="profileName">User</div>
+  <button id="logoutBtn">Logout</button>
+</div>
 
+<section id="login" class="active">
   <input id="email" placeholder="Email">
   <input id="pass" type="password" placeholder="Password">
 
-  <div class="authButtons">
-    <button id="loginBtn">Login</button>
-    <button id="regBtn">Register</button>
-  </div>
-
+  <button id="loginBtn" class="authBtn">Login</button>
+<button id="regBtn" class="authBtn">Register</button>
 </section>
 
-<!-- CHAT LIST -->
 <section id="inbox">
   <div id="chatList"></div>
 </section>
 
-<!-- CHAT -->
 <section id="chat">
 
-  <div class="chatHeader">
+  <div style="padding:10px;background:#202c33;">
     <button id="backBtn">← Back</button>
-    <span>Chat</span>
   </div>
 
   <div id="chatBox"></div>
 
   <div id="inputArea">
-    <textarea id="msg" placeholder="Message..."></textarea>
+    <textarea id="msg"></textarea>
     <button id="send">Send</button>
   </div>
 
@@ -264,233 +178,201 @@ header {
 </div>
 
 <script>
-const firebaseConfig = {
-  apiKey: "AIzaSyCy9CKJ6CELheBhw7Gs0BgsE1E0FsoYdgU",
-  authDomain: "project-955237504610034331.firebaseapp.com",
-  databaseURL: "https://project-955237504610034331-default-rtdb.firebaseio.com",
-  projectId: "project-955237504610034331"
-};
+const email = document.getElementById("email");
+const pass = document.getElementById("pass");
 
-firebase.initializeApp(firebaseConfig);
+const menuBtn = document.getElementById("menuBtn");
+const menu = document.getElementById("menu");
+const logoutBtn = document.getElementById("logoutBtn");
+
+const chatBox = document.getElementById("chatBox");
+const backBtn = document.getElementById("backBtn");
+
+firebase.initializeApp({
+  apiKey:"AIzaSyCy9CKJ6CELheBhw7Gs0BgsE1E0FsoYdgU",
+  authDomain:"project-955237504610034331.firebaseapp.com",
+  databaseURL:"https://project-955237504610034331-default-rtdb.firebaseio.com",
+  projectId:"project-955237504610034331"
+});
 
 const auth = firebase.auth();
 const db = firebase.database();
 
-let user = null;
-let currentRoom = null;
-let msgRef = null;
+let user=null;
+let currentRoom=null;
+let msgRef=null;
 
-/* SAFE NAME */
 function getName(u){
   return u?.displayName || u?.email?.split("@")[0] || "user";
 }
 
-/* SAVE USER NAME FIXED */
-async function saveUserName(u){
-  const defaultName = u.email.split("@")[0];
-
-  if(!u.displayName){
-    await u.updateProfile({ displayName: defaultName });
-  }
-
-  await db.ref("users/" + u.uid).set({
-    name: u.displayName || defaultName,
-    email: u.email
-  });
-}
-
-/* SWITCH UI */
 function show(id){
-  document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+  document.querySelectorAll("section").forEach(s=>s.classList.remove("active"));
   document.getElementById(id).classList.add("active");
 }
 
-/* LISTEN MESSAGES (ONLY ONE VERSION) */
+/* FIXED LISTENER */
 function listenMessages(room){
 
   if(msgRef) msgRef.off();
 
-  const box = document.getElementById("chatBox");
-  box.innerHTML = "";
+  const box=document.getElementById("chatBox");
+  box.innerHTML="";
 
-  msgRef = db.ref("messages/" + room);
+  msgRef=db.ref("messages/"+room).orderByChild("time");
 
-  msgRef.on("child_added", snap => {
-    const m = snap.val();
-    const key = snap.key;
+  msgRef.on("child_added", snap=>{
+    const m=snap.val();
+    const key=snap.key;
 
-    const div = document.createElement("div");
-    div.className = "msg " + (m.sender === user.uid ? "me" : "other");
+    const div=document.createElement("div");
+    div.className="msg "+(m.sender===user.uid?"me":"other");
+    div.setAttribute("data-key", key);
 
-    const time = new Date(m.time || Date.now()).toLocaleTimeString();
-    const seen = m.seenBy && Object.keys(m.seenBy).length > 1;
+    const time=new Date(m.time||Date.now()).toLocaleTimeString();
+    const seen=m.seenBy && Object.keys(m.seenBy||{}).length>1;
 
-    div.innerHTML = `
+    div.innerHTML=`
       ${escapeHtml(m.text)}
-      <small>${escapeHtml(m.name || "user")} • ${time}</small>
-      <div class="ticks">${m.sender === user.uid ? (seen ? "✓✓" : "✓") : ""}</div>
+      <small>${escapeHtml(m.name||"user")} • ${time}</small>
+      <div class="ticks">${m.sender===user.uid?(seen?"✓✓":"✓"):""}</div>
     `;
 
-    /* HOLD TO DELETE */
-    if(m.sender === user.uid){
-      let hold;
-
-      const start = () => {
-        hold = setTimeout(() => {
-          if(confirm("Delete message?")){
-            db.ref(`messages/${room}/${key}`).remove();
-          }
-        }, 700);
-      };
-
-      const cancel = () => clearTimeout(hold);
-
-      div.addEventListener("mousedown", start);
-      div.addEventListener("mouseup", cancel);
-      div.addEventListener("mouseleave", cancel);
-      div.addEventListener("touchstart", start);
-      div.addEventListener("touchend", cancel);
-    }
-
     box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
+    box.scrollTop=box.scrollHeight;
+  });
+
+  msgRef.on("child_changed", snap=>{
+    const m=snap.val();
+    const key=snap.key;
+
+    const div=document.querySelector(`[data-key="${key}"]`);
+    if(!div) return;
+
+    const time=new Date(m.time||Date.now()).toLocaleTimeString();
+    const seen=m.seenBy && Object.keys(m.seenBy||{}).length>1;
+
+    div.innerHTML=`
+      ${escapeHtml(m.text)}
+      <small>${escapeHtml(m.name||"user")} • ${time}</small>
+      <div class="ticks">${m.sender===user.uid?(seen?"✓✓":"✓"):""}</div>
+    `;
   });
 }
 
 /* MARK SEEN */
 function markSeen(room){
-  db.ref("messages/" + room).once("value", snap => {
-    snap.forEach(child => {
-      const m = child.val();
-      if(m.sender !== user.uid){
+  db.ref("messages/"+room).once("value", snap=>{
+    snap.forEach(child=>{
+      const m=child.val();
+      if(m.sender!==user.uid){
         db.ref(`messages/${room}/${child.key}/seenBy/${user.uid}`).set(true);
       }
     });
   });
 }
 
-/* OPEN CHAT */
 function openChat(otherUid){
-  currentRoom = [user.uid, otherUid].sort().join("_");
+  currentRoom=[user.uid,otherUid].sort().join("_");
   show("chat");
   listenMessages(currentRoom);
   markSeen(currentRoom);
 }
 
-/* LOAD USERS */
-function loadChats(){
-  const list = document.getElementById("chatList");
-
-  db.ref("users").on("value", snap => {
-    list.innerHTML = "";
-
-    snap.forEach(userSnap => {
-      const u = userSnap.val();
-      const uid = userSnap.key;
-
-      if(uid === user.uid) return;
-
-      const div = document.createElement("div");
-      div.className = "chatItem";
-
-      div.innerHTML = `
-        <b>${u.name || "user"}</b><br>
-        <small>${u.email || ""}</small>
-      `;
-
-      div.onclick = () => openChat(uid);
-      list.appendChild(div);
-    });
-  });
-}
-
-/* AUTH (MERGED FIX) */
-auth.onAuthStateChanged(async u => {
-  if(!u){
-    show("login");
-    return;
-  }
-
-  user = u;
-
-  await saveUserName(u);
-
-  document.getElementById("profileName").textContent =
-    getName(u);
-
-  show("inbox");
-  loadChats();
-});
-
-/* SEND */
-document.getElementById("send").onclick = () => {
-  const text = document.getElementById("msg").value.trim();
-  if(!text || !user || !currentRoom) return;
-
-  db.ref("messages/" + currentRoom).push({
-    text,
-    sender: user.uid,
-    name: getName(user),
-    time: Date.now(),
-    seenBy: { [user.uid]: true }
-  });
-
-  document.getElementById("msg").value = "";
-};
-
-/* LOGIN */
-document.getElementById("loginBtn").onclick = () => {
-  auth.signInWithEmailAndPassword(
-    document.getElementById("email").value,
-    document.getElementById("pass").value
-  );
-};
-
-/* REGISTER */
-document.getElementById("regBtn").onclick = () => {
-  const email = document.getElementById("email").value;
-  const pass = document.getElementById("pass").value;
-
-  const defaultName = email.split("@")[0];
-
-  auth.createUserWithEmailAndPassword(email, pass)
-    .then(res => {
-      return res.user.updateProfile({
-        displayName: defaultName
-      });
-    });
-};
-
-/* UTIL */
 function escapeHtml(t){
-  return (t || "")
+  return (t||"")
     .replaceAll("&","&amp;")
     .replaceAll("<","&lt;")
     .replaceAll(">","&gt;");
 }
 
+/* SEND */
+document.getElementById("send").onclick=()=>{
+  const text=document.getElementById("msg").value.trim();
+  if(!text||!user||!currentRoom)return;
+
+  db.ref("messages/"+currentRoom).push({
+    text,
+    sender:user.uid,
+    name:getName(user),
+    time:Date.now(),
+    seenBy:{[user.uid]:true}
+  });
+
+  document.getElementById("msg").value="";
+};
+
+/* 🔥 SPEED FIXED AUTH */
+auth.onAuthStateChanged(u=>{
+  if(!u){ show("login"); return; }
+
+  user=u;
+
+  // ⚡ instant UI (no delay)
+  show("inbox");
+
+  document.getElementById("profileName").textContent=getName(u);
+
+  // ⚡ background lang (hindi na hinahantay)
+  setTimeout(()=> {
+    db.ref("users/"+u.uid).set({
+      name: getName(u),
+      email: u.email
+    });
+  }, 0);
+
+  db.ref("users").on("value", snap=>{
+    const list=document.getElementById("chatList");
+    list.innerHTML="";
+
+    snap.forEach(s=>{
+      if(s.key===user.uid)return;
+
+      const u=s.val();
+      const div=document.createElement("div");
+      div.className="chatItem";
+      div.innerHTML=`<b>${u.name}</b><br><small>${u.email}</small>`;
+      div.onclick=()=>openChat(s.key);
+      list.appendChild(div);
+    });
+  });
+});
+
+/* LOGIN */
+document.getElementById("loginBtn").onclick=()=>{
+  auth.signInWithEmailAndPassword(email.value, pass.value);
+};
+
+/* REGISTER */
+document.getElementById("regBtn").onclick=()=>{
+  const emailVal=email.value;
+  const passVal=pass.value;
+
+  auth.createUserWithEmailAndPassword(emailVal,passVal)
+    .then(res=>{
+      return res.user.updateProfile({
+        displayName: emailVal.split("@")[0]
+      });
+    });
+};
+
 /* MENU */
-const menuBtn = document.getElementById("menuBtn");
-const menu = document.getElementById("menu");
-
-menuBtn.onclick = () => menu.classList.toggle("show");
-
-document.addEventListener("click", e => {
-  if(!menu.contains(e.target) && e.target !== menuBtn){
+menuBtn.onclick=()=>menu.classList.toggle("show");
+document.addEventListener("click",e=>{
+  if(!menu.contains(e.target)&&e.target!==menuBtn){
     menu.classList.remove("show");
   }
 });
 
 /* LOGOUT */
-document.getElementById("logoutBtn").onclick = () => auth.signOut();
+logoutBtn.onclick=()=>auth.signOut();
 
 /* BACK */
-document.getElementById("backBtn").onclick = () => {
-  currentRoom = null;
-  if(msgRef) msgRef.off();
-  msgRef = null;
-
-  document.getElementById("chatBox").innerHTML = "";
+backBtn.onclick=()=>{
+  currentRoom=null;
+  if(msgRef)msgRef.off();
+  msgRef=null;
+  if (chatBox) chatBox.innerHTML = "";
   show("inbox");
 };
 </script>
