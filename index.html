@@ -197,6 +197,7 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.database();
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
 
 let user=null;
 let currentRoom=null;
