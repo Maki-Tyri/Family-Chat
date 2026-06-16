@@ -197,11 +197,14 @@ firebase.initializeApp({
 
 const auth = firebase.auth();
 const db = firebase.database();
-auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
+
+auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL)
+.catch(console.error);
 
 let user=null;
 let currentRoom=null;
 let msgRef=null;
+let usersRef=null;
 
 function getName(u){
   return u?.displayName || u?.email?.split("@")[0] || "user";
@@ -305,38 +308,60 @@ document.getElementById("send").onclick=()=>{
 
 /* 🔥 SPEED FIXED AUTH */
 auth.onAuthStateChanged(u=>{
-  if(!u){ show("login"); return; }
+
+  if(!u){
+    user=null;
+
+    if(usersRef){
+      usersRef.off();
+      usersRef=null;
+    }
+
+    show("login");
+    return;
+  }
 
   user=u;
 
-  // ⚡ instant UI (no delay)
   show("inbox");
 
   document.getElementById("profileName").textContent=getName(u);
 
-  // ⚡ background lang (hindi na hinahantay)
-  setTimeout(()=> {
-    db.ref("users/"+u.uid).set({
-      name: getName(u),
-      email: u.email
-    });
-  }, 0);
+  db.ref("users/"+u.uid).update({
+    name:getName(u),
+    email:u.email
+  });
 
-  db.ref("users").on("value", snap=>{
+  if(usersRef){
+    usersRef.off();
+  }
+
+  usersRef=db.ref("users");
+
+  usersRef.once("value", snap=>{
+
     const list=document.getElementById("chatList");
     list.innerHTML="";
 
     snap.forEach(s=>{
-      if(s.key===user.uid)return;
+
+      if(s.key===user.uid) return;
 
       const u=s.val();
+
       const div=document.createElement("div");
       div.className="chatItem";
-      div.innerHTML=`<b>${u.name}</b><br><small>${u.email}</small>`;
+
+      div.innerHTML=
+        `<b>${u.name||"user"}</b><br><small>${u.email||""}</small>`;
+
       div.onclick=()=>openChat(s.key);
+
       list.appendChild(div);
     });
+
   });
+
 });
 
 /* LOGIN */
@@ -345,16 +370,37 @@ document.getElementById("loginBtn").onclick=()=>{
 };
 
 /* REGISTER */
-document.getElementById("regBtn").onclick=()=>{
-  const emailVal=email.value;
-  const passVal=pass.value;
+document.getElementById("regBtn").onclick=async()=>{
 
-  auth.createUserWithEmailAndPassword(emailVal,passVal)
-    .then(res=>{
-      return res.user.updateProfile({
-        displayName: emailVal.split("@")[0]
-      });
+  const btn=document.getElementById("regBtn");
+
+  if(btn.disabled) return;
+
+  btn.disabled=true;
+  btn.textContent="Registering...";
+
+  try{
+
+    const emailVal=email.value.trim();
+    const passVal=pass.value;
+
+    const res=await auth.createUserWithEmailAndPassword(
+      emailVal,
+      passVal
+    );
+
+    await res.user.updateProfile({
+      displayName: emailVal.split("@")[0]
     });
+
+  }catch(err){
+
+    alert(err.message);
+
+    btn.disabled=false;
+    btn.textContent="Register";
+  }
+
 };
 
 /* MENU */
